@@ -1,0 +1,21 @@
+#edit-mode: -*- python -*-
+#coding:utf8
+
+PROTOC('../protobuf/bin/protoc')
+THRIFT('../thrift/bin/thrift')
+
+CXX('g++')
+CXXFLAGS('-D_GNU_SOURCE -D__STDC_LIMIT_MACROS -g -pipe -W -Wall -fPIC -fno-omit-frame-pointer')
+LDFLAGS('-lunwind -lcrypto -levent -ldl -lpthread -lm -lrt')
+
+DEP_LIB(GLOB('./lib/svm/lib/*.a ./lib/seg/lib/*.a'))
+
+DEP('gflags', '1.0.1')
+DEP('glog', '1.0.1')
+DEP('protobuf', 'v2.6.1')
+DEP('thrift', '1.0.1')
+
+
+sources = GLOB('./*.cpp ./server/*.cpp ./interface/*.thrift ./service/*.cpp ./svm_model/*.cpp ./segmentation/*.cpp ./utils/*.cpp ./base/*.cpp')
+
+APP('anti_spam', sources)

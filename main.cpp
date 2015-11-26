@@ -10,6 +10,7 @@ DEFINE_int32(server_thread_num, 2, "Server thread num");
 DEFINE_string(segment_resource_dir, "./resource/chinese_utf8/", "Resource dir.");
 DEFINE_string(segment_index_file, "./index/anti_spam_dict.txt", "Segment index file.");
 DEFINE_string(simple_seg_svm_model_file, "./index/simple_seg_svm.model", "simple svm model.");
+DEFINE_string(index_scale_file, "./index/anti_spam_scale_parameters", "index scale file.");
 
 void handle_signal(int sig) {
     g_server.stop();

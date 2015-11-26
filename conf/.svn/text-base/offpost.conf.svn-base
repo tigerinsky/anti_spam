@@ -1,0 +1,25 @@
+#log conf
+-log_dir=./log/
+-stderrthreshold=4
+-max_log_size=100
+-logbufsecs=0
+
+#server conf
+-port=9027
+-server_thread_num=2
+-task_thread_num=5
+-redis_host=127.0.0.1
+-redis_port=8888
+-cache_redis_host=127.0.0.1
+-cache_redis_port=8889
+-thread_sleep_time=10000
+-ms_host=127.0.0.1
+-ms_port=8999
+-mysql_host=rdsvz7zvunqy3y3.mysql.rds.aliyuncs.com
+-mysql_port=3306
+-mysql_db=bwapp
+-mysql_user=bwapp
+-mysql_pwd=Qjvhwd34hx1cle0e6szg
+
+#work conf
+-redis_queue_size=5000

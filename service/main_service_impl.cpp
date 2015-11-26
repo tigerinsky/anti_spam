@@ -51,6 +51,7 @@ int MainServiceImpl::init() {
         return 3;
     }
     i_ret = svm_transformer->init(FLAGS_segment_index_file,
+            FLAGS_index_scale_file,
             _segmentation);
     if (i_ret) {
         LOG(ERROR) << "svm_transformer init failed.";

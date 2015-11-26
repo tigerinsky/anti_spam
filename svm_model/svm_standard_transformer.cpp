@@ -5,6 +5,11 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+
+#include <boost/format.hpp>  
+#include <boost/tokenizer.hpp>  
+#include <boost/algorithm/string.hpp> 
+
 #include "glog/logging.h"
 #include "../segmentation/segmentation.h"
 #include "svm_standard_input.h"
@@ -15,18 +20,22 @@ namespace cls {
 
 extern __thread struct ThreadData* thread_data;
 
-SvmStandardTransformer::SvmStandardTransformer() : _segmentation(NULL) {
+SvmStandardTransformer::SvmStandardTransformer() : _segmentation(NULL),
+                                                lower(-1),
+                                                upper(1) {
     _feature_size = 0;
 }
 
 SvmStandardTransformer::~SvmStandardTransformer() {
 }
 
-int SvmStandardTransformer::init(const std::string&segment_index_file,
+int SvmStandardTransformer::init(const std::string& segment_index_file,
+                            const std::string& index_scale_file,
                             Segmentation* segmentation) {
     utils::Timer timer;
     int i_ret = -1;
     _segment_index_file = segment_index_file;
+    _index_scale_file = index_scale_file;
     _segmentation = segmentation;
 
     i_ret = load_segment_index();
@@ -35,6 +44,12 @@ int SvmStandardTransformer::init(const std::string&segment_index_file,
         return 1;
     }
     _feature_size = _term_index.size();
+
+    i_ret = load_index_scale();
+    if (0 != i_ret) {
+        LOG(ERROR) << "load_index_scale failed, ret=" << i_ret;
+        return 1;
+    }
 
     LOG(INFO) << "SvmStandardTransformer init time=" << timer.elapse() / 1000.0;
 
@@ -133,6 +148,49 @@ int SvmStandardTransformer::load_segment_index() {
     return 0;
 }
 
+int SvmStandardTransformer::load_index_scale() {
+    upper = 1;
+    lower = -1;
+
+    std::ifstream file(_index_scale_file.c_str());
+    if (!file) {
+        LOG(ERROR) << "Index scale file [" << _index_scale_file
+            << "] not exist.";
+        return 1;
+    }
+    std::string line;
+    // read first line: x
+    std::getline(file, line);
+    // read second line: min and max
+    std::getline(file, line);
+
+    //loop read
+    size_t line_num = 0;
+    while (std::getline(file, line)) {
+        // create separator
+        boost::char_separator<char> sep(" ");         
+        typedef boost::tokenizer< boost::char_separator<char> >  
+                        CustonTokenizer; 
+        // split string
+        CustonTokenizer tok(line, sep);  
+        // process element of string
+        CustonTokenizer::iterator it=tok.begin();
+        size_t index = static_cast<size_t>(atoi((*it).c_str()) - 1);
+        if (index != line_num) {
+            LOG(ERROR) << "index != line_num, "
+                << index << " != " << line_num;
+            file.close();
+            return 2;
+        }
+        _feature_min.push_back(atof((*(++it)).c_str()));
+        _feature_max.push_back(atof((*(++it)).c_str()));
+        line_num++;
+    }
+
+    file.close();
+    return 0;
+}
+
 int SvmStandardTransformer::transform(const std::string& content,
                                         ModelStandardInput* standard_input) {
     int i_ret = -1;
@@ -168,6 +226,10 @@ int SvmStandardTransformer::transform(const std::string& content,
         std::string tmp = term_list[i];
         if (isNum(term_list[i])) {
             tmp = "number";
+        } else if (isDict(term_list[i])) {
+            tmp = term_list[i];
+        } else if (isLatin(term_list[i])) {
+            tmp = "latin";
         }
         boost::unordered_map<std::string, size_t>::const_iterator map_itr =
             _term_index.find(tmp);
@@ -179,8 +241,27 @@ int SvmStandardTransformer::transform(const std::string& content,
                 LOG(WARNING) << "index > _feature_size, " << index << " > " << _feature_size;
                 return 2;
             }
-            svm_nodes[index - 1].value = 1;
+            if (svm_nodes[index - 1].value == -1) {
+                svm_nodes[index - 1].value = 1;
+            } else {
+                svm_nodes[index - 1].value++;
+            }
         }
+    }
+
+    // feature scale
+    for (size_t i = 0; i < _feature_size; i++) {
+        if(_feature_max[i] == _feature_min[i])
+            continue;
+
+        if(svm_nodes[i].value == _feature_min[index])
+            svm_nodes[i].value = lower;
+        else if(svm_nodes[i].value == _feature_max[index])
+            svm_nodes[i].value = upper;
+        else
+            svm_nodes[i].value = lower + (upper-lower) *
+                        (svm_nodes[i].value - _feature_min[index])/
+                        (_feature_max[index] - _feature_min[index]);
     }
 
     return 0;

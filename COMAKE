@@ -13,7 +13,7 @@ DEP_LIB(GLOB('./lib/svm/lib/*.a ./lib/seg/lib/*.a'))
 DEP('gflags', '1.0.1')
 DEP('glog', '1.0.1')
 DEP('protobuf', 'v2.6.1')
-DEP('thrift', '1.0.1')
+DEP('thrift', '1.0.2')
 
 
 sources = GLOB('./*.cpp ./server/*.cpp ./interface/*.thrift ./service/*.cpp ./svm_model/*.cpp ./segmentation/*.cpp ./utils/*.cpp ./base/*.cpp')
